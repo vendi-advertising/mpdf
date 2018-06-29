@@ -13517,68 +13517,46 @@ class Mpdf extends MpdfImpl
         } else {
             $k = 1;
         }
-        $h = (isset($objattr['BORDER-HEIGHT']) ? $objattr['BORDER-HEIGHT'] : 0);
-        $w = (isset($objattr['BORDER-WIDTH']) ? $objattr['BORDER-WIDTH'] : 0);
-        $x0 = (isset($objattr['BORDER-X']) ? $objattr['BORDER-X'] : 0);
-        $y0 = (isset($objattr['BORDER-Y']) ? $objattr['BORDER-Y'] : 0);
 
-        // BORDERS
-        if ($objattr['border_top']) {
-            $tbd = $objattr['border_top'];
-            if (!empty($tbd['s'])) {
-                $this->_setBorderLine($tbd, $k);
-                if ($tbd['style'] == 'dotted' || $tbd['style'] == 'dashed') {
-                    $this->_setDashBorder($tbd['style'], '', '', 'T');
+        $height = (isset($objattr['BORDER-HEIGHT']) ? $objattr['BORDER-HEIGHT'] : 0);
+        $width  = (isset($objattr['BORDER-WIDTH']) ? $objattr['BORDER-WIDTH'] : 0);
+        $left   = (isset($objattr['BORDER-X']) ? $objattr['BORDER-X'] : 0);
+        $top    = (isset($objattr['BORDER-Y']) ? $objattr['BORDER-Y'] : 0);
+
+        $right  = $x0 + $width;
+        $bottom = $y0 + $height;
+
+        $border_settings = [
+            [ 'border_top',    'T', $left,  $top,    $right, $top    ],
+            [ 'border_left',   'L', $left,  $top,    $left,  $bottom ],
+            [ 'border_right',  'R', $right, $top,    $right, $bottom ],
+            [ 'border_bottom', 'B', $left,  $bottom, $right, $bottom ],
+        ];
+
+        foreach($border_settings as $bs){
+            $css_side = array_shift($bs);
+            $side     = array_shift($bs);
+            $x1       = array_shift($bs);
+            $y1       = array_shift($bs);
+            $x2       = array_shift($bs);
+            $y2       = array_shift($bs);
+
+            if ($objattr[$css_side]) {
+                $tbd = $objattr[$css_side];
+                if (!empty($tbd['s'])) {
+                    $this->_setBorderLine($tbd, $k);
+                    if ($tbd['style'] == 'dotted' || $tbd['style'] == 'dashed') {
+                        $this->_setDashBorder($tbd['style'], '', '', $side);
+                    }
+                    $this->Line($x1, $y1, $x2, $y2);
+                    // Reset Corners and Dash off
+                    $this->SetLineJoin(2);
+                    $this->SetLineCap(2);
+                    $this->SetDash();
                 }
-                $this->Line($x0, $y0, $x0 + $w, $y0);
-                // Reset Corners and Dash off
-                $this->SetLineJoin(2);
-                $this->SetLineCap(2);
-                $this->SetDash();
             }
         }
-        if ($objattr['border_left']) {
-            $tbd = $objattr['border_left'];
-            if (!empty($tbd['s'])) {
-                $this->_setBorderLine($tbd, $k);
-                if ($tbd['style'] == 'dotted' || $tbd['style'] == 'dashed') {
-                    $this->_setDashBorder($tbd['style'], '', '', 'L');
-                }
-                $this->Line($x0, $y0, $x0, $y0 + $h);
-                // Reset Corners and Dash off
-                $this->SetLineJoin(2);
-                $this->SetLineCap(2);
-                $this->SetDash();
-            }
-        }
-        if ($objattr['border_right']) {
-            $tbd = $objattr['border_right'];
-            if (!empty($tbd['s'])) {
-                $this->_setBorderLine($tbd, $k);
-                if ($tbd['style'] == 'dotted' || $tbd['style'] == 'dashed') {
-                    $this->_setDashBorder($tbd['style'], '', '', 'R');
-                }
-                $this->Line($x0 + $w, $y0, $x0 + $w, $y0 + $h);
-                // Reset Corners and Dash off
-                $this->SetLineJoin(2);
-                $this->SetLineCap(2);
-                $this->SetDash();
-            }
-        }
-        if ($objattr['border_bottom']) {
-            $tbd = $objattr['border_bottom'];
-            if (!empty($tbd['s'])) {
-                $this->_setBorderLine($tbd, $k);
-                if ($tbd['style'] == 'dotted' || $tbd['style'] == 'dashed') {
-                    $this->_setDashBorder($tbd['style'], '', '', 'B');
-                }
-                $this->Line($x0, $y0 + $h, $x0 + $w, $y0 + $h);
-                // Reset Corners and Dash off
-                $this->SetLineJoin(2);
-                $this->SetLineCap(2);
-                $this->SetDash();
-            }
-        }
+
         $this->SetDash();
         $this->SetAlpha(1);
     }
