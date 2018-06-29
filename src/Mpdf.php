@@ -10456,55 +10456,53 @@ class Mpdf extends MpdfImpl
 			$bbox_bl = $this->blk[1]['border_left']['w'];
 			$bbox_bt = $this->blk[1]['border_top']['w'];
 			$bbox_bb = $this->blk[1]['border_bottom']['w'];
+
 			$bbox_pr = $this->blk[1]['padding_right'];
 			$bbox_pl = $this->blk[1]['padding_left'];
 			$bbox_pt = $this->blk[1]['padding_top'];
 			$bbox_pb = $this->blk[1]['padding_bottom'];
+
 			$bbox_mr = $this->blk[1]['margin_right'];
+			$bbox_ml = $this->blk[1]['margin_left'];
+			$bbox_mt = $this->blk[1]['margin_top'];
+			$bbox_mb = $this->blk[1]['margin_bottom'];
+
 			if (isset($p['MARGIN-RIGHT']) && strtolower($p['MARGIN-RIGHT']) == 'auto') {
 				$bbox_mr = 'auto';
 			}
-			$bbox_ml = $this->blk[1]['margin_left'];
 			if (isset($p['MARGIN-LEFT']) && strtolower($p['MARGIN-LEFT']) == 'auto') {
 				$bbox_ml = 'auto';
 			}
-			$bbox_mt = $this->blk[1]['margin_top'];
 			if (isset($p['MARGIN-TOP']) && strtolower($p['MARGIN-TOP']) == 'auto') {
 				$bbox_mt = 'auto';
 			}
-			$bbox_mb = $this->blk[1]['margin_bottom'];
 			if (isset($p['MARGIN-BOTTOM']) && strtolower($p['MARGIN-BOTTOM']) == 'auto') {
 				$bbox_mb = 'auto';
 			}
-			if (isset($p['LEFT']) && strtolower($p['LEFT']) != 'auto') {
-				$bbox_left = $this->sizeConverter->convert($p['LEFT'], $cont_w, $this->FontSize, false);
-			} else {
-				$bbox_left = 'auto';
-			}
-			if (isset($p['TOP']) && strtolower($p['TOP']) != 'auto') {
-				$bbox_top = $this->sizeConverter->convert($p['TOP'], $cont_h, $this->FontSize, false);
-			} else {
-				$bbox_top = 'auto';
-			}
-			if (isset($p['RIGHT']) && strtolower($p['RIGHT']) != 'auto') {
-				$bbox_right = $this->sizeConverter->convert($p['RIGHT'], $cont_w, $this->FontSize, false);
-			} else {
-				$bbox_right = 'auto';
-			}
-			if (isset($p['BOTTOM']) && strtolower($p['BOTTOM']) != 'auto') {
-				$bbox_bottom = $this->sizeConverter->convert($p['BOTTOM'], $cont_h, $this->FontSize, false);
-			} else {
-				$bbox_bottom = 'auto';
-			}
-			if (isset($p['WIDTH']) && strtolower($p['WIDTH']) != 'auto') {
-				$inner_w = $this->sizeConverter->convert($p['WIDTH'], $cont_w, $this->FontSize, false);
-			} else {
-				$inner_w = 'auto';
-			}
-			if (isset($p['HEIGHT']) && strtolower($p['HEIGHT']) != 'auto') {
-				$inner_h = $this->sizeConverter->convert($p['HEIGHT'], $cont_h, $this->FontSize, false);
-			} else {
-				$inner_h = 'auto';
+
+			$bbox_left = 'auto';
+			$bbox_top = 'auto';
+			$bbox_right = 'auto';
+			$bbox_bottom = 'auto';
+			$inner_w = 'auto';
+			$inner_h = 'auto';
+
+			$box_auto_props = [
+				[ &$bbox_left,		'LEFT', 	$cont_w ],
+				[ &$bbox_top, 		'TOP', 		$cont_h ],
+				[ &$bbox_right, 	'RIGHT', 	$cont_w ],
+				[ &$bbox_bottom,	'BOTTOM', 	$cont_h ],
+				[ &$inner_w, 		'WIDTH',	$cont_w ],
+				[ &$inner_h, 		'HEIGHT', 	$cont_h ],
+			];
+
+			foreach($box_auto_props as $item){
+				$var  = &$item[0];
+				$prop =  $item[1];
+				$cont =  $item[2];
+				if (isset($p[$prop]) && strtolower($p[$prop]) != 'auto') {
+					$var = $this->sizeConverter->convert($p[$prop], $cont, $this->FontSize, false);
+				}
 			}
 
 			// If bottom or right pos are set and not left / top - save this to adjust rotated block later
