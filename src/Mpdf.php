@@ -10359,76 +10359,44 @@ class Mpdf extends MpdfImpl
 				$cont_y = 0;
 			}
 
+			$css_props = [
+				'TEXT-ALIGN',
+				'TEXT-TRANSFORM',
+				'TEXT-INDENT',
+				'TEXT-DECORATION',
+				'FONT-FAMILY',
+				'FONT-STYLE',
+				'FONT-WEIGHT',
+				'FONT-SIZE',
+				'LINE-HEIGHT',
+				'TEXT-SHADOW',
+				'LETTER-SPACING',
+
+				// mPDF 6
+				'FONT-VARIANT-POSITION',
+				'FONT-VARIANT-CAPS',
+				'FONT-VARIANT-LIGATURES',
+				'FONT-VARIANT-NUMERIC',
+				'FONT-VARIANT-ALTERNATES',
+				'FONT-FEATURE-SETTINGS',
+				'FONT-LANGUAGE-OVERRIDE',
+				'FONT-KERNING',
+				'COLOR',
+				'Z-INDEX',
+			];
+
 			// Pass on in-line properties to the innerhtml
 			$css = '';
-			if (isset($p['TEXT-ALIGN'])) {
-				$css .= 'text-align: ' . strtolower($p['TEXT-ALIGN']) . '; ';
-			}
-			if (isset($p['TEXT-TRANSFORM'])) {
-				$css .= 'text-transform: ' . strtolower($p['TEXT-TRANSFORM']) . '; ';
-			}
-			if (isset($p['TEXT-INDENT'])) {
-				$css .= 'text-indent: ' . strtolower($p['TEXT-INDENT']) . '; ';
-			}
-			if (isset($p['TEXT-DECORATION'])) {
-				$css .= 'text-decoration: ' . strtolower($p['TEXT-DECORATION']) . '; ';
-			}
-			if (isset($p['FONT-FAMILY'])) {
-				$css .= 'font-family: ' . strtolower($p['FONT-FAMILY']) . '; ';
-			}
-			if (isset($p['FONT-STYLE'])) {
-				$css .= 'font-style: ' . strtolower($p['FONT-STYLE']) . '; ';
-			}
-			if (isset($p['FONT-WEIGHT'])) {
-				$css .= 'font-weight: ' . strtolower($p['FONT-WEIGHT']) . '; ';
-			}
-			if (isset($p['FONT-SIZE'])) {
-				$css .= 'font-size: ' . strtolower($p['FONT-SIZE']) . '; ';
-			}
-			if (isset($p['LINE-HEIGHT'])) {
-				$css .= 'line-height: ' . strtolower($p['LINE-HEIGHT']) . '; ';
-			}
-			if (isset($p['TEXT-SHADOW'])) {
-				$css .= 'text-shadow: ' . strtolower($p['TEXT-SHADOW']) . '; ';
-			}
-			if (isset($p['LETTER-SPACING'])) {
-				$css .= 'letter-spacing: ' . strtolower($p['LETTER-SPACING']) . '; ';
-			}
-			// mPDF 6
-			if (isset($p['FONT-VARIANT-POSITION'])) {
-				$css .= 'font-variant-position: ' . strtolower($p['FONT-VARIANT-POSITION']) . '; ';
-			}
-			if (isset($p['FONT-VARIANT-CAPS'])) {
-				$css .= 'font-variant-caps: ' . strtolower($p['FONT-VARIANT-CAPS']) . '; ';
-			}
-			if (isset($p['FONT-VARIANT-LIGATURES'])) {
-				$css .= 'font-variant-ligatures: ' . strtolower($p['FONT-VARIANT-LIGATURES']) . '; ';
-			}
-			if (isset($p['FONT-VARIANT-NUMERIC'])) {
-				$css .= 'font-variant-numeric: ' . strtolower($p['FONT-VARIANT-NUMERIC']) . '; ';
-			}
-			if (isset($p['FONT-VARIANT-ALTERNATES'])) {
-				$css .= 'font-variant-alternates: ' . strtolower($p['FONT-VARIANT-ALTERNATES']) . '; ';
-			}
-			if (isset($p['FONT-FEATURE-SETTINGS'])) {
-				$css .= 'font-feature-settings: ' . strtolower($p['FONT-FEATURE-SETTINGS']) . '; ';
-			}
-			if (isset($p['FONT-LANGUAGE-OVERRIDE'])) {
-				$css .= 'font-language-override: ' . strtolower($p['FONT-LANGUAGE-OVERRIDE']) . '; ';
-			}
-			if (isset($p['FONT-KERNING'])) {
-				$css .= 'font-kerning: ' . strtolower($p['FONT-KERNING']) . '; ';
+			foreach($css_props as $prop){
+				if (isset($p[$prop])) {
+					$css .= mb_strtolower($prop) . ': ' . strtolower($p[$prop]) . '; ';
+				}
 			}
 
-			if (isset($p['COLOR'])) {
-				$css .= 'color: ' . strtolower($p['COLOR']) . '; ';
-			}
-			if (isset($p['Z-INDEX'])) {
-				$css .= 'z-index: ' . $p['Z-INDEX'] . '; ';
-			}
 			if ($css) {
 				$html = '<div style="' . $css . '">' . $html . '</div>';
 			}
+
 			// Copy over (only) the properties to set for border and background
 			$pb = [];
 
