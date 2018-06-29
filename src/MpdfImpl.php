@@ -42,31 +42,8 @@ abstract class MpdfImpl implements \Psr\Log\LoggerAwareInterface
 
 	const SCALE = 72 / 25.4;
 
-	var $useFixedNormalLineHeight; // mPDF 6
-	var $useFixedTextBaseline; // mPDF 6
-	var $adjustFontDescLineheight; // mPDF 6
-	var $interpolateImages; // mPDF 6
-	var $defaultPagebreakType; // mPDF 6 pagebreaktype
-	var $indexUseSubentries; // mPDF 6
 
-	var $autoScriptToLang; // mPDF 6
-	var $baseScript; // mPDF 6
-	var $autoVietnamese; // mPDF 6
-	var $autoArabic; // mPDF 6
 
-	var $CJKforceend;
-	var $h2bookmarks;
-	var $h2toc;
-	var $decimal_align;
-	var $margBuffer;
-	var $splitTableBorderWidth;
-
-	var $bookmarkStyles;
-	var $useActiveForms;
-
-	var $repackageTTF;
-	var $allowCJKorphans;
-	var $allowCJKoverflow;
 
 	var $useKerning;
 	var $restrictColorSpace;
@@ -1006,12 +983,59 @@ abstract class MpdfImpl implements \Psr\Log\LoggerAwareInterface
     abstract public function UTF8ToUTF16BE($str, $setbom = true);
     abstract public function WriteHTML($html, $sub = 0, $init = true, $close = true);
 
+	private $property_bag;
+
+    /**
+     * Override magic method so that we route requests to the property bag.
+     * @param mixed $name
+     * @param mixed $value
+     */
+    public function __set($name, $value)
+    {
+        if(!$this->has_property($name)){
+            throw new MpdfException(\sprintf('Attempt at setting undeclared property %1$s', $name));
+        }
+
+        $this->property_bag->$name = $value;
+    }
+
+    /**
+     * Override magic method so that we route requests to the property bag.
+     * @param mixed $name
+     */
+    public function &__get($name)
+    {
+        if(!$this->has_property($name)){
+            throw new MpdfException(\sprintf('Attempt at setting undeclared property %1$s', $name));
+        }
+
+        return $this->property_bag->$name;
+    }
+
+    public function __isset($name)
+    {
+        return $this->has_property($name) && isset($this->property_bag->$name);
+    }
+
+    public function __unset($name)
+    {
+        if($this->has_property($name)){
+             unset($this->property_bag->$name);
+        }
+    }
+
+    public function has_property($name)
+    {
+        return property_exists($this->property_bag, $name);
+    }
 
 	/**
 	 * @param mixed[] $config
 	 */
 	public function __construct(array $config = [])
 	{
+		$this->property_bag = new PropertyBag();
+
 		$this->_dochecks();
 
 		list(
