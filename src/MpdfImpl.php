@@ -18,19 +18,10 @@ use Mpdf\Css\TextVars;
 
 use Mpdf\Image\ImageProcessor;
 
-use Mpdf\Log\Context as LogContext;
-
 use Mpdf\Fonts\FontCache;
 use Mpdf\Fonts\FontFileFinder;
 
-use Mpdf\Pdf\Protection;
-use Mpdf\Pdf\Protection\UniqidGenerator;
-
-use Mpdf\QrCode;
-
-use Mpdf\Utils\Arrays;
 use Mpdf\Utils\PdfDate;
-use Mpdf\Utils\NumericString;
 use Mpdf\Utils\UtfString;
 
 use Psr\Log\NullLogger;
