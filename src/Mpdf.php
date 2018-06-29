@@ -13523,8 +13523,8 @@ class Mpdf extends MpdfImpl
         $left   = (isset($objattr['BORDER-X']) ? $objattr['BORDER-X'] : 0);
         $top    = (isset($objattr['BORDER-Y']) ? $objattr['BORDER-Y'] : 0);
 
-        $right  = $x0 + $width;
-        $bottom = $y0 + $height;
+        $right  = $left + $width;
+        $bottom = $top  + $height;
 
         $border_settings = [
             [ 'border_top',    'T', $left,  $top,    $right, $top    ],
