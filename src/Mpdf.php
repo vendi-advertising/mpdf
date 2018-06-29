@@ -5028,533 +5028,544 @@ class Mpdf extends MpdfImpl
 
 		foreach ($this->objectbuffer as $ib => $objattr) {
 
-			if ($objattr['type'] == 'bookmark' || $objattr['type'] == 'indexentry' || $objattr['type'] == 'toc') {
-				$x = $objattr['OUTER-X'];
-				$y = $objattr['OUTER-Y'];
-				$this->y = $y - $this->FontSize / 2;
-				$this->x = $x;
-				if ($objattr['type'] == 'bookmark') {
-					$this->Bookmark($objattr['CONTENT'], $objattr['bklevel'], $y - $this->FontSize);
-				} // *BOOKMARKS*
-				if ($objattr['type'] == 'indexentry') {
-					$this->IndexEntry($objattr['CONTENT']);
-				} // *INDEX*
-				if ($objattr['type'] == 'toc') {
-					$this->TOC_Entry($objattr['CONTENT'], $objattr['toclevel'], (isset($objattr['toc_id']) ? $objattr['toc_id'] : ''));
-				} // *TOC*
-			} /* -- ANNOTATIONS -- */ elseif ($objattr['type'] == 'annot') {
-				if ($objattr['POS-X']) {
-					$x = $objattr['POS-X'];
-				} elseif ($this->annotMargin <> 0) {
-					$x = -$objattr['OUTER-X'];
-				} else {
+			switch($objattr['type']){
+				case 'bookmark':
+				case 'indexentry':
+				case 'toc':
 					$x = $objattr['OUTER-X'];
-				}
-				if ($objattr['POS-Y']) {
-					$y = $objattr['POS-Y'];
-				} else {
-					$y = $objattr['OUTER-Y'] - $this->FontSize / 2;
-				}
-				// Create a dummy entry in the _out/columnBuffer with position sensitive data,
-				// linking $y-1 in the Columnbuffer with entry in $this->columnAnnots
-				// and when columns are split in length will not break annotation from current line
-				$this->y = $y - 1;
-				$this->x = $x - 1;
-				$this->Line($x - 1, $y - 1, $x - 1, $y - 1);
-				$this->Annotation($objattr['CONTENT'], $x, $y, $objattr['ICON'], $objattr['AUTHOR'], $objattr['SUBJECT'], $objattr['OPACITY'], $objattr['COLOR'], (isset($objattr['POPUP']) ? $objattr['POPUP'] : ''), (isset($objattr['FILE']) ? $objattr['FILE'] : ''));
-			} /* -- END ANNOTATIONS -- */ else {
-				$y = $objattr['OUTER-Y'];
-				$x = $objattr['OUTER-X'];
-				$w = $objattr['OUTER-WIDTH'];
-				$h = $objattr['OUTER-HEIGHT'];
-				if (isset($objattr['text'])) {
-					$texto = $objattr['text'];
-				}
-				$this->y = $y;
-				$this->x = $x;
-				if (isset($objattr['fontfamily'])) {
-					$this->SetFont($objattr['fontfamily'], '', $objattr['fontsize']);
-				}
+					$y = $objattr['OUTER-Y'];
+					$this->y = $y - $this->FontSize / 2;
+					$this->x = $x;
+
+					switch($objattr['type']){
+						case 'bookmark':
+							$this->Bookmark($objattr['CONTENT'], $objattr['bklevel'], $y - $this->FontSize);
+							break;
+						case 'indexentry':
+							$this->IndexEntry($objattr['CONTENT']);
+							break;
+						case 'toc':
+							$this->TOC_Entry($objattr['CONTENT'], $objattr['toclevel'], (isset($objattr['toc_id']) ? $objattr['toc_id'] : ''));
+							break;
+					}
+					break;
+
+				/* -- ANNOTATIONS -- */
+				case 'annot':
+					if ($objattr['POS-X']) {
+						$x = $objattr['POS-X'];
+					} elseif ($this->annotMargin <> 0) {
+						$x = -$objattr['OUTER-X'];
+					} else {
+						$x = $objattr['OUTER-X'];
+					}
+					if ($objattr['POS-Y']) {
+						$y = $objattr['POS-Y'];
+					} else {
+						$y = $objattr['OUTER-Y'] - $this->FontSize / 2;
+					}
+					// Create a dummy entry in the _out/columnBuffer with position sensitive data,
+					// linking $y-1 in the Columnbuffer with entry in $this->columnAnnots
+					// and when columns are split in length will not break annotation from current line
+					$this->y = $y - 1;
+					$this->x = $x - 1;
+					$this->Line($x - 1, $y - 1, $x - 1, $y - 1);
+					$this->Annotation($objattr['CONTENT'], $x, $y, $objattr['ICON'], $objattr['AUTHOR'], $objattr['SUBJECT'], $objattr['OPACITY'], $objattr['COLOR'], (isset($objattr['POPUP']) ? $objattr['POPUP'] : ''), (isset($objattr['FILE']) ? $objattr['FILE'] : ''));
+					break;
+
+				default:
+					$y = $objattr['OUTER-Y'];
+					$x = $objattr['OUTER-X'];
+					$w = $objattr['OUTER-WIDTH'];
+					$h = $objattr['OUTER-HEIGHT'];
+					if (isset($objattr['text'])) {
+						$texto = $objattr['text'];
+					}
+					$this->y = $y;
+					$this->x = $x;
+					if (isset($objattr['fontfamily'])) {
+						$this->SetFont($objattr['fontfamily'], '', $objattr['fontsize']);
+					}
 			}
 
-			// HR
-			if ($objattr['type'] == 'hr') {
-				$this->SetDColor($objattr['color']);
-				switch ($objattr['align']) {
-					case 'C':
-						$empty = $objattr['OUTER-WIDTH'] - $objattr['INNER-WIDTH'];
-						$empty /= 2;
-						$x += $empty;
-						break;
-					case 'R':
-						$empty = $objattr['OUTER-WIDTH'] - $objattr['INNER-WIDTH'];
-						$x += $empty;
-						break;
-				}
-				$oldlinewidth = $this->LineWidth;
-				$this->SetLineWidth($objattr['linewidth'] / $k);
-				$this->y += ($objattr['linewidth'] / 2) + $objattr['margin_top'] / $k;
-				$this->Line($x, $this->y, $x + $objattr['INNER-WIDTH'], $this->y);
-				$this->SetLineWidth($oldlinewidth);
-				$this->SetDColor($this->colorConverter->convert(0, $this->PDFAXwarnings));
-			}
-			// IMAGE
-			if ($objattr['type'] == 'image') {
-				// mPDF 5.7.3 TRANSFORMS
-				if (isset($objattr['transform'])) {
-					$this->_out("\n" . '% BTR'); // Begin Transform
-				}
-				if (isset($objattr['z-index']) && $objattr['z-index'] > 0 && $this->current_layer == 0) {
-					$this->BeginLayer($objattr['z-index']);
-				}
-				if (isset($objattr['visibility']) && $objattr['visibility'] != 'visible' && $objattr['visibility']) {
-					$this->SetVisibility($objattr['visibility']);
-				}
-				if (isset($objattr['opacity'])) {
-					$this->SetAlpha($objattr['opacity']);
-				}
+			switch($objattr['type']){
+				case 'hr':
+					$this->SetDColor($objattr['color']);
+					switch ($objattr['align']) {
+						case 'C':
+							$empty = $objattr['OUTER-WIDTH'] - $objattr['INNER-WIDTH'];
+							$empty /= 2;
+							$x += $empty;
+							break;
+						case 'R':
+							$empty = $objattr['OUTER-WIDTH'] - $objattr['INNER-WIDTH'];
+							$x += $empty;
+							break;
+					}
+					$oldlinewidth = $this->LineWidth;
+					$this->SetLineWidth($objattr['linewidth'] / $k);
+					$this->y += ($objattr['linewidth'] / 2) + $objattr['margin_top'] / $k;
+					$this->Line($x, $this->y, $x + $objattr['INNER-WIDTH'], $this->y);
+					$this->SetLineWidth($oldlinewidth);
+					$this->SetDColor($this->colorConverter->convert(0, $this->PDFAXwarnings));
+					break;
 
-				$obiw = $objattr['INNER-WIDTH'];
-				$obih = $objattr['INNER-HEIGHT'];
+				case 'image':
+					// mPDF 5.7.3 TRANSFORMS
+					if (isset($objattr['transform'])) {
+						$this->_out("\n" . '% BTR'); // Begin Transform
+					}
+					if (isset($objattr['z-index']) && $objattr['z-index'] > 0 && $this->current_layer == 0) {
+						$this->BeginLayer($objattr['z-index']);
+					}
+					if (isset($objattr['visibility']) && $objattr['visibility'] != 'visible' && $objattr['visibility']) {
+						$this->SetVisibility($objattr['visibility']);
+					}
+					if (isset($objattr['opacity'])) {
+						$this->SetAlpha($objattr['opacity']);
+					}
 
-				$sx = $objattr['orig_w'] ? ($objattr['INNER-WIDTH'] * Mpdf::SCALE / $objattr['orig_w']) : INF;
-				$sy = $objattr['orig_h'] ? ($objattr['INNER-HEIGHT'] * Mpdf::SCALE / $objattr['orig_h']) : INF;
+					$obiw = $objattr['INNER-WIDTH'];
+					$obih = $objattr['INNER-HEIGHT'];
 
-				$rotate = 0;
-				if (isset($objattr['ROTATE'])) {
-					$rotate = $objattr['ROTATE'];
-				}
+					$sx = $objattr['orig_w'] ? ($objattr['INNER-WIDTH'] * Mpdf::SCALE / $objattr['orig_w']) : INF;
+					$sy = $objattr['orig_h'] ? ($objattr['INNER-HEIGHT'] * Mpdf::SCALE / $objattr['orig_h']) : INF;
 
-				if ($rotate == 90) {
-					// Clockwise
-					$obiw = $objattr['INNER-HEIGHT'];
-					$obih = $objattr['INNER-WIDTH'];
-					$tr = $this->transformTranslate(0, -$objattr['INNER-WIDTH'], true);
-					$tr .= ' ' . $this->transformRotate(90, $objattr['INNER-X'], ($objattr['INNER-Y'] + $objattr['INNER-WIDTH']), true);
-					$sx = $obiw * Mpdf::SCALE / $objattr['orig_h'];
-					$sy = $obih * Mpdf::SCALE / $objattr['orig_w'];
-				} elseif ($rotate == -90 || $rotate == 270) {
-					// AntiClockwise
-					$obiw = $objattr['INNER-HEIGHT'];
-					$obih = $objattr['INNER-WIDTH'];
-					$tr = $this->transformTranslate($objattr['INNER-WIDTH'], ($objattr['INNER-HEIGHT'] - $objattr['INNER-WIDTH']), true);
-					$tr .= ' ' . $this->transformRotate(-90, $objattr['INNER-X'], ($objattr['INNER-Y'] + $objattr['INNER-WIDTH']), true);
-					$sx = $obiw * Mpdf::SCALE / $objattr['orig_h'];
-					$sy = $obih * Mpdf::SCALE / $objattr['orig_w'];
-				} elseif ($rotate == 180) {
-					// Mirror
-					$tr = $this->transformTranslate($objattr['INNER-WIDTH'], -$objattr['INNER-HEIGHT'], true);
-					$tr .= ' ' . $this->transformRotate(180, $objattr['INNER-X'], ($objattr['INNER-Y'] + $objattr['INNER-HEIGHT']), true);
-				} else {
-					$tr = '';
-				}
-				$tr = trim($tr);
-				if ($tr) {
-					$tr .= ' ';
-				}
-				$gradmask = '';
+					$rotate = 0;
+					if (isset($objattr['ROTATE'])) {
+						$rotate = $objattr['ROTATE'];
+					}
 
-				// mPDF 5.7.3 TRANSFORMS
-				$tr2 = '';
-				if (isset($objattr['transform'])) {
-					$maxsize_x = $w;
-					$maxsize_y = $h;
-					$cx = $x + $w / 2;
-					$cy = $y + $h / 2;
-					preg_match_all('/(translatex|translatey|translate|scalex|scaley|scale|rotate|skewX|skewY|skew)\((.*?)\)/is', $objattr['transform'], $m);
-					if (count($m[0])) {
-						for ($i = 0; $i < count($m[0]); $i++) {
-							$c = strtolower($m[1][$i]);
-							$v = trim($m[2][$i]);
-							$vv = preg_split('/[ ,]+/', $v);
-							if ($c == 'translate' && count($vv)) {
-								$translate_x = $this->sizeConverter->convert($vv[0], $maxsize_x, false, false);
-								if (count($vv) == 2) {
+					if ($rotate == 90) {
+						// Clockwise
+						$obiw = $objattr['INNER-HEIGHT'];
+						$obih = $objattr['INNER-WIDTH'];
+						$tr = $this->transformTranslate(0, -$objattr['INNER-WIDTH'], true);
+						$tr .= ' ' . $this->transformRotate(90, $objattr['INNER-X'], ($objattr['INNER-Y'] + $objattr['INNER-WIDTH']), true);
+						$sx = $obiw * Mpdf::SCALE / $objattr['orig_h'];
+						$sy = $obih * Mpdf::SCALE / $objattr['orig_w'];
+					} elseif ($rotate == -90 || $rotate == 270) {
+						// AntiClockwise
+						$obiw = $objattr['INNER-HEIGHT'];
+						$obih = $objattr['INNER-WIDTH'];
+						$tr = $this->transformTranslate($objattr['INNER-WIDTH'], ($objattr['INNER-HEIGHT'] - $objattr['INNER-WIDTH']), true);
+						$tr .= ' ' . $this->transformRotate(-90, $objattr['INNER-X'], ($objattr['INNER-Y'] + $objattr['INNER-WIDTH']), true);
+						$sx = $obiw * Mpdf::SCALE / $objattr['orig_h'];
+						$sy = $obih * Mpdf::SCALE / $objattr['orig_w'];
+					} elseif ($rotate == 180) {
+						// Mirror
+						$tr = $this->transformTranslate($objattr['INNER-WIDTH'], -$objattr['INNER-HEIGHT'], true);
+						$tr .= ' ' . $this->transformRotate(180, $objattr['INNER-X'], ($objattr['INNER-Y'] + $objattr['INNER-HEIGHT']), true);
+					} else {
+						$tr = '';
+					}
+					$tr = trim($tr);
+					if ($tr) {
+						$tr .= ' ';
+					}
+					$gradmask = '';
+
+					// mPDF 5.7.3 TRANSFORMS
+					$tr2 = '';
+					if (isset($objattr['transform'])) {
+						$maxsize_x = $w;
+						$maxsize_y = $h;
+						$cx = $x + $w / 2;
+						$cy = $y + $h / 2;
+						preg_match_all('/(translatex|translatey|translate|scalex|scaley|scale|rotate|skewX|skewY|skew)\((.*?)\)/is', $objattr['transform'], $m);
+						if (count($m[0])) {
+							for ($i = 0; $i < count($m[0]); $i++) {
+								$c = strtolower($m[1][$i]);
+								$v = trim($m[2][$i]);
+								$vv = preg_split('/[ ,]+/', $v);
+								if ($c == 'translate' && count($vv)) {
+									$translate_x = $this->sizeConverter->convert($vv[0], $maxsize_x, false, false);
+									if (count($vv) == 2) {
+										$translate_y = $this->sizeConverter->convert($vv[1], $maxsize_y, false, false);
+									} else {
+										$translate_y = 0;
+									}
+									$tr2 .= $this->transformTranslate($translate_x, $translate_y, true) . ' ';
+								} elseif ($c == 'translatex' && count($vv)) {
+									$translate_x = $this->sizeConverter->convert($vv[0], $maxsize_x, false, false);
+									$tr2 .= $this->transformTranslate($translate_x, 0, true) . ' ';
+								} elseif ($c == 'translatey' && count($vv)) {
 									$translate_y = $this->sizeConverter->convert($vv[1], $maxsize_y, false, false);
-								} else {
-									$translate_y = 0;
-								}
-								$tr2 .= $this->transformTranslate($translate_x, $translate_y, true) . ' ';
-							} elseif ($c == 'translatex' && count($vv)) {
-								$translate_x = $this->sizeConverter->convert($vv[0], $maxsize_x, false, false);
-								$tr2 .= $this->transformTranslate($translate_x, 0, true) . ' ';
-							} elseif ($c == 'translatey' && count($vv)) {
-								$translate_y = $this->sizeConverter->convert($vv[1], $maxsize_y, false, false);
-								$tr2 .= $this->transformTranslate(0, $translate_y, true) . ' ';
-							} elseif ($c == 'scale' && count($vv)) {
-								$scale_x = $vv[0] * 100;
-								if (count($vv) == 2) {
+									$tr2 .= $this->transformTranslate(0, $translate_y, true) . ' ';
+								} elseif ($c == 'scale' && count($vv)) {
+									$scale_x = $vv[0] * 100;
+									if (count($vv) == 2) {
+										$scale_y = $vv[1] * 100;
+									} else {
+										$scale_y = $scale_x;
+									}
+									$tr2 .= $this->transformScale($scale_x, $scale_y, $cx, $cy, true) . ' ';
+								} elseif ($c == 'scalex' && count($vv)) {
+									$scale_x = $vv[0] * 100;
+									$tr2 .= $this->transformScale($scale_x, 0, $cx, $cy, true) . ' ';
+								} elseif ($c == 'scaley' && count($vv)) {
 									$scale_y = $vv[1] * 100;
-								} else {
-									$scale_y = $scale_x;
+									$tr2 .= $this->transformScale(0, $scale_y, $cx, $cy, true) . ' ';
+								} elseif ($c == 'skew' && count($vv)) {
+									$angle_x = $this->ConvertAngle($vv[0], false);
+									if (count($vv) == 2) {
+										$angle_y = $this->ConvertAngle($vv[1], false);
+									} else {
+										$angle_y = 0;
+									}
+									$tr2 .= $this->transformSkew($angle_x, $angle_y, $cx, $cy, true) . ' ';
+								} elseif ($c == 'skewx' && count($vv)) {
+									$angle = $this->ConvertAngle($vv[0], false);
+									$tr2 .= $this->transformSkew($angle, 0, $cx, $cy, true) . ' ';
+								} elseif ($c == 'skewy' && count($vv)) {
+									$angle = $this->ConvertAngle($vv[0], false);
+									$tr2 .= $this->transformSkew(0, $angle, $cx, $cy, true) . ' ';
+								} elseif ($c == 'rotate' && count($vv)) {
+									$angle = $this->ConvertAngle($vv[0]);
+									$tr2 .= $this->transformRotate($angle, $cx, $cy, true) . ' ';
 								}
-								$tr2 .= $this->transformScale($scale_x, $scale_y, $cx, $cy, true) . ' ';
-							} elseif ($c == 'scalex' && count($vv)) {
-								$scale_x = $vv[0] * 100;
-								$tr2 .= $this->transformScale($scale_x, 0, $cx, $cy, true) . ' ';
-							} elseif ($c == 'scaley' && count($vv)) {
-								$scale_y = $vv[1] * 100;
-								$tr2 .= $this->transformScale(0, $scale_y, $cx, $cy, true) . ' ';
-							} elseif ($c == 'skew' && count($vv)) {
-								$angle_x = $this->ConvertAngle($vv[0], false);
-								if (count($vv) == 2) {
-									$angle_y = $this->ConvertAngle($vv[1], false);
-								} else {
-									$angle_y = 0;
-								}
-								$tr2 .= $this->transformSkew($angle_x, $angle_y, $cx, $cy, true) . ' ';
-							} elseif ($c == 'skewx' && count($vv)) {
-								$angle = $this->ConvertAngle($vv[0], false);
-								$tr2 .= $this->transformSkew($angle, 0, $cx, $cy, true) . ' ';
-							} elseif ($c == 'skewy' && count($vv)) {
-								$angle = $this->ConvertAngle($vv[0], false);
-								$tr2 .= $this->transformSkew(0, $angle, $cx, $cy, true) . ' ';
-							} elseif ($c == 'rotate' && count($vv)) {
-								$angle = $this->ConvertAngle($vv[0]);
-								$tr2 .= $this->transformRotate($angle, $cx, $cy, true) . ' ';
 							}
 						}
 					}
-				}
 
-				// LIST MARKERS (Images)	// mPDF 6  Lists
-				if (isset($objattr['listmarker']) && $objattr['listmarker'] && $objattr['listmarkerposition'] == 'outside') {
-					$mw = $objattr['OUTER-WIDTH'];
-					// NB If change marker-offset, also need to alter in function _getListMarkerWidth
-					$adjx = $this->sizeConverter->convert($this->list_marker_offset, $this->FontSize);
-					if ($objattr['dir'] == 'rtl') {
-						$objattr['INNER-X'] += $adjx;
-					} else {
-						$objattr['INNER-X'] -= $adjx;
-						$objattr['INNER-X'] -= $mw;
+					// LIST MARKERS (Images)	// mPDF 6  Lists
+					if (isset($objattr['listmarker']) && $objattr['listmarker'] && $objattr['listmarkerposition'] == 'outside') {
+						$mw = $objattr['OUTER-WIDTH'];
+						// NB If change marker-offset, also need to alter in function _getListMarkerWidth
+						$adjx = $this->sizeConverter->convert($this->list_marker_offset, $this->FontSize);
+						if ($objattr['dir'] == 'rtl') {
+							$objattr['INNER-X'] += $adjx;
+						} else {
+							$objattr['INNER-X'] -= $adjx;
+							$objattr['INNER-X'] -= $mw;
+						}
 					}
-				}
-				// mPDF 5.7.3 TRANSFORMS / BACKGROUND COLOR
-				// Transform also affects image background
-				if ($tr2) {
-					$this->_out('q ' . $tr2 . ' ');
-				}
-				if (isset($objattr['bgcolor']) && $objattr['bgcolor']) {
-					$bgcol = $objattr['bgcolor'];
-					$this->SetFColor($bgcol);
-					$this->Rect($x, $y, $w, $h, 'F');
-					$this->SetFColor($this->colorConverter->convert(255, $this->PDFAXwarnings));
-				}
-				if ($tr2) {
-					$this->_out('Q');
-				}
+					// mPDF 5.7.3 TRANSFORMS / BACKGROUND COLOR
+					// Transform also affects image background
+					if ($tr2) {
+						$this->_out('q ' . $tr2 . ' ');
+					}
+					if (isset($objattr['bgcolor']) && $objattr['bgcolor']) {
+						$bgcol = $objattr['bgcolor'];
+						$this->SetFColor($bgcol);
+						$this->Rect($x, $y, $w, $h, 'F');
+						$this->SetFColor($this->colorConverter->convert(255, $this->PDFAXwarnings));
+					}
+					if ($tr2) {
+						$this->_out('Q');
+					}
 
-				/* -- BACKGROUNDS -- */
-				if (isset($objattr['GRADIENT-MASK'])) {
-					$g = $this->gradient->parseMozGradient($objattr['GRADIENT-MASK']);
-					if ($g) {
-						$dummy = $this->gradient->Gradient($objattr['INNER-X'], $objattr['INNER-Y'], $obiw, $obih, $g['type'], $g['stops'], $g['colorspace'], $g['coords'], $g['extend'], true, true);
-						$gradmask = '/TGS' . count($this->gradients) . ' gs ';
+					/* -- BACKGROUNDS -- */
+					if (isset($objattr['GRADIENT-MASK'])) {
+						$g = $this->gradient->parseMozGradient($objattr['GRADIENT-MASK']);
+						if ($g) {
+							$dummy = $this->gradient->Gradient($objattr['INNER-X'], $objattr['INNER-Y'], $obiw, $obih, $g['type'], $g['stops'], $g['colorspace'], $g['coords'], $g['extend'], true, true);
+							$gradmask = '/TGS' . count($this->gradients) . ' gs ';
+						}
 					}
-				}
-				/* -- END BACKGROUNDS -- */
-				/* -- IMAGES-WMF -- */
-				if (isset($objattr['itype']) && $objattr['itype'] == 'wmf') {
-					$outstring = sprintf('q ' . $tr . $tr2 . '%.3F 0 0 %.3F %.3F %.3F cm /FO%d Do Q', $sx, -$sy, $objattr['INNER-X'] * Mpdf::SCALE - $sx * $objattr['wmf_x'], (($this->h - $objattr['INNER-Y']) * Mpdf::SCALE) + $sy * $objattr['wmf_y'], $objattr['ID']); // mPDF 5.7.3 TRANSFORMS
-				} else { 				/* -- END IMAGES-WMF -- */
-					if (isset($objattr['itype']) && $objattr['itype'] == 'svg') {
+					/* -- END BACKGROUNDS -- */
+					/* -- IMAGES-WMF -- */
+					if (isset($objattr['itype']) && $objattr['itype'] == 'wmf') {
 						$outstring = sprintf('q ' . $tr . $tr2 . '%.3F 0 0 %.3F %.3F %.3F cm /FO%d Do Q', $sx, -$sy, $objattr['INNER-X'] * Mpdf::SCALE - $sx * $objattr['wmf_x'], (($this->h - $objattr['INNER-Y']) * Mpdf::SCALE) + $sy * $objattr['wmf_y'], $objattr['ID']); // mPDF 5.7.3 TRANSFORMS
-					} else {
-						$outstring = sprintf("q " . $tr . $tr2 . "%.3F 0 0 %.3F %.3F %.3F cm " . $gradmask . "/I%d Do Q", $obiw * Mpdf::SCALE, $obih * Mpdf::SCALE, $objattr['INNER-X'] * Mpdf::SCALE, ($this->h - ($objattr['INNER-Y'] + $obih )) * Mpdf::SCALE, $objattr['ID']); // mPDF 5.7.3 TRANSFORMS
+					} else { 				/* -- END IMAGES-WMF -- */
+						if (isset($objattr['itype']) && $objattr['itype'] == 'svg') {
+							$outstring = sprintf('q ' . $tr . $tr2 . '%.3F 0 0 %.3F %.3F %.3F cm /FO%d Do Q', $sx, -$sy, $objattr['INNER-X'] * Mpdf::SCALE - $sx * $objattr['wmf_x'], (($this->h - $objattr['INNER-Y']) * Mpdf::SCALE) + $sy * $objattr['wmf_y'], $objattr['ID']); // mPDF 5.7.3 TRANSFORMS
+						} else {
+							$outstring = sprintf("q " . $tr . $tr2 . "%.3F 0 0 %.3F %.3F %.3F cm " . $gradmask . "/I%d Do Q", $obiw * Mpdf::SCALE, $obih * Mpdf::SCALE, $objattr['INNER-X'] * Mpdf::SCALE, ($this->h - ($objattr['INNER-Y'] + $obih )) * Mpdf::SCALE, $objattr['ID']); // mPDF 5.7.3 TRANSFORMS
+						}
 					}
-				}
-				$this->_out($outstring);
-				// LINK
-				if (isset($objattr['link'])) {
-					$this->Link($objattr['INNER-X'], $objattr['INNER-Y'], $objattr['INNER-WIDTH'], $objattr['INNER-HEIGHT'], $objattr['link']);
-				}
-				if (isset($objattr['opacity'])) {
-					$this->SetAlpha(1);
-				}
-
-				// mPDF 5.7.3 TRANSFORMS
-				// Transform also affects image borders
-				if ($tr2) {
-					$this->_out('q ' . $tr2 . ' ');
-				}
-				if ((isset($objattr['border_top']) && $objattr['border_top'] > 0) || (isset($objattr['border_left']) && $objattr['border_left'] > 0) || (isset($objattr['border_right']) && $objattr['border_right'] > 0) || (isset($objattr['border_bottom']) && $objattr['border_bottom'] > 0)) {
-					$this->PaintImgBorder($objattr, $is_table);
-				}
-				if ($tr2) {
-					$this->_out('Q');
-				}
-
-				if (isset($objattr['visibility']) && $objattr['visibility'] != 'visible' && $objattr['visibility']) {
-					$this->SetVisibility('visible');
-				}
-				if (isset($objattr['z-index']) && $objattr['z-index'] > 0 && $this->current_layer == 0) {
-					$this->EndLayer();
-				}
-				// mPDF 5.7.3 TRANSFORMS
-				if (isset($objattr['transform'])) {
-					$this->_out("\n" . '% ETR'); // End Transform
-				}
-			}
-
-			if ($objattr['type'] === 'barcode') {
-
-				$bgcol = $this->colorConverter->convert(255, $this->PDFAXwarnings);
-
-				if (isset($objattr['bgcolor']) && $objattr['bgcolor']) {
-					$bgcol = $objattr['bgcolor'];
-				}
-
-				$col = $this->colorConverter->convert(0, $this->PDFAXwarnings);
-
-				if (isset($objattr['color']) && $objattr['color']) {
-					$col = $objattr['color'];
-				}
-
-				$this->SetFColor($bgcol);
-				$this->Rect($objattr['BORDER-X'], $objattr['BORDER-Y'], $objattr['BORDER-WIDTH'], $objattr['BORDER-HEIGHT'], 'F');
-				$this->SetFColor($this->colorConverter->convert(255, $this->PDFAXwarnings));
-
-				if (isset($objattr['BORDER-WIDTH'])) {
-					$this->PaintImgBorder($objattr, $is_table);
-				}
-
-				$barcodeTypes = ['EAN13', 'ISBN', 'ISSN', 'UPCA', 'UPCE', 'EAN8'];
-				if (in_array($objattr['btype'], $barcodeTypes, true)) {
-
-					$this->WriteBarcode(
-						$objattr['code'],
-						$objattr['showtext'],
-						$objattr['INNER-X'],
-						$objattr['INNER-Y'],
-						$objattr['bsize'],
-						0,
-						0,
-						0,
-						0,
-						0,
-						$objattr['bheight'],
-						$bgcol,
-						$col,
-						$objattr['btype'],
-						$objattr['bsupp'],
-						(isset($objattr['bsupp_code']) ? $objattr['bsupp_code'] : ''),
-						$k
-					);
-
-				} elseif ($objattr['btype'] === 'QR') {
-
-					$barcodeContent = str_replace('\r\n', "\r\n", $objattr['code']);
-					$barcodeContent = str_replace('\n', "\n", $barcodeContent);
-
-					$this->qrcode = new QrCode\QrCode($barcodeContent, $objattr['errorlevel']);
-					if ($objattr['disableborder']) {
-						$this->qrcode->disableBorder();
+					$this->_out($outstring);
+					// LINK
+					if (isset($objattr['link'])) {
+						$this->Link($objattr['INNER-X'], $objattr['INNER-Y'], $objattr['INNER-WIDTH'], $objattr['INNER-HEIGHT'], $objattr['link']);
+					}
+					if (isset($objattr['opacity'])) {
+						$this->SetAlpha(1);
 					}
 
-					$bgColor = [255, 255, 255];
-					if ($objattr['bgcolor']) {
-						$bgColor = array_map(
-							function ($col) {
-								return intval(255 * floatval($col));
-							},
-							explode(" ", $this->SetColor($objattr['bgcolor'], 'CodeOnly'))
-						);
+					// mPDF 5.7.3 TRANSFORMS
+					// Transform also affects image borders
+					if ($tr2) {
+						$this->_out('q ' . $tr2 . ' ');
 					}
-					$color = [0, 0, 0];
-					if ($objattr['color']) {
-						$color = array_map(
-							function ($col) {
-								return intval(255 * floatval($col));
-							},
-							explode(" ", $this->SetColor($objattr['color'], 'CodeOnly'))
-						);
+					if ((isset($objattr['border_top']) && $objattr['border_top'] > 0) || (isset($objattr['border_left']) && $objattr['border_left'] > 0) || (isset($objattr['border_right']) && $objattr['border_right'] > 0) || (isset($objattr['border_bottom']) && $objattr['border_bottom'] > 0)) {
+						$this->PaintImgBorder($objattr, $is_table);
+					}
+					if ($tr2) {
+						$this->_out('Q');
 					}
 
-					$this->qrcode->displayFPDF(
-						$this,
-						$objattr['INNER-X'],
-						$objattr['INNER-Y'],
-						$objattr['bsize'] * 25,
-						$bgColor,
-						$color
-					);
+					if (isset($objattr['visibility']) && $objattr['visibility'] != 'visible' && $objattr['visibility']) {
+						$this->SetVisibility('visible');
+					}
+					if (isset($objattr['z-index']) && $objattr['z-index'] > 0 && $this->current_layer == 0) {
+						$this->EndLayer();
+					}
+					// mPDF 5.7.3 TRANSFORMS
+					if (isset($objattr['transform'])) {
+						$this->_out("\n" . '% ETR'); // End Transform
+					}
+					break;
 
-				} else {
+				case 'barcode':
+					$bgcol = $this->colorConverter->convert(255, $this->PDFAXwarnings);
 
-					$this->WriteBarcode2(
-						$objattr['code'],
-						$objattr['INNER-X'],
-						$objattr['INNER-Y'],
-						$objattr['bsize'],
-						$objattr['bheight'],
-						$bgcol,
-						$col,
-						$objattr['btype'],
-						$objattr['pr_ratio'],
-						$k
-					);
+					if (isset($objattr['bgcolor']) && $objattr['bgcolor']) {
+						$bgcol = $objattr['bgcolor'];
+					}
 
-				}
-			}
+					$col = $this->colorConverter->convert(0, $this->PDFAXwarnings);
 
-			// TEXT CIRCLE
-			if ($objattr['type'] == 'textcircle') {
-				$bgcol = '';
-				if (isset($objattr['bgcolor']) && $objattr['bgcolor']) {
-					$bgcol = $objattr['bgcolor'];
-				}
-				$col = $this->colorConverter->convert(0, $this->PDFAXwarnings);
-				if (isset($objattr['color']) && $objattr['color']) {
-					$col = $objattr['color'];
-				}
-				$this->SetTColor($col);
-				$this->SetFColor($bgcol);
-				if ($bgcol) {
+					if (isset($objattr['color']) && $objattr['color']) {
+						$col = $objattr['color'];
+					}
+
+					$this->SetFColor($bgcol);
 					$this->Rect($objattr['BORDER-X'], $objattr['BORDER-Y'], $objattr['BORDER-WIDTH'], $objattr['BORDER-HEIGHT'], 'F');
-				}
-				$this->SetFColor($this->colorConverter->convert(255, $this->PDFAXwarnings));
-				if (isset($objattr['BORDER-WIDTH'])) {
-					$this->PaintImgBorder($objattr, $is_table);
-				}
-				if (empty($this->directWrite)) {
-					$this->directWrite = new DirectWrite($this, $this->otl, $this->sizeConverter, $this->colorConverter);
-				}
-				if (isset($objattr['top-text'])) {
-					$this->directWrite->CircularText($objattr['INNER-X'] + $objattr['INNER-WIDTH'] / 2, $objattr['INNER-Y'] + $objattr['INNER-HEIGHT'] / 2, $objattr['r'] / $k, $objattr['top-text'], 'top', $objattr['fontfamily'], $objattr['fontsize'] / $k, $objattr['fontstyle'], $objattr['space-width'], $objattr['char-width'], (isset($objattr['divider']) ? $objattr['divider'] : ''));
-				}
-				if (isset($objattr['bottom-text'])) {
-					$this->directWrite->CircularText($objattr['INNER-X'] + $objattr['INNER-WIDTH'] / 2, $objattr['INNER-Y'] + $objattr['INNER-HEIGHT'] / 2, $objattr['r'] / $k, $objattr['bottom-text'], 'bottom', $objattr['fontfamily'], $objattr['fontsize'] / $k, $objattr['fontstyle'], $objattr['space-width'], $objattr['char-width'], (isset($objattr['divider']) ? $objattr['divider'] : ''));
-				}
+					$this->SetFColor($this->colorConverter->convert(255, $this->PDFAXwarnings));
+
+					if (isset($objattr['BORDER-WIDTH'])) {
+						$this->PaintImgBorder($objattr, $is_table);
+					}
+
+					$barcodeTypes = ['EAN13', 'ISBN', 'ISSN', 'UPCA', 'UPCE', 'EAN8'];
+					if (in_array($objattr['btype'], $barcodeTypes, true)) {
+
+						$this->WriteBarcode(
+							$objattr['code'],
+							$objattr['showtext'],
+							$objattr['INNER-X'],
+							$objattr['INNER-Y'],
+							$objattr['bsize'],
+							0,
+							0,
+							0,
+							0,
+							0,
+							$objattr['bheight'],
+							$bgcol,
+							$col,
+							$objattr['btype'],
+							$objattr['bsupp'],
+							(isset($objattr['bsupp_code']) ? $objattr['bsupp_code'] : ''),
+							$k
+						);
+
+					} elseif ($objattr['btype'] === 'QR') {
+
+						$barcodeContent = str_replace('\r\n', "\r\n", $objattr['code']);
+						$barcodeContent = str_replace('\n', "\n", $barcodeContent);
+
+						$this->qrcode = new QrCode\QrCode($barcodeContent, $objattr['errorlevel']);
+						if ($objattr['disableborder']) {
+							$this->qrcode->disableBorder();
+						}
+
+						$bgColor = [255, 255, 255];
+						if ($objattr['bgcolor']) {
+							$bgColor = array_map(
+								function ($col) {
+									return intval(255 * floatval($col));
+								},
+								explode(" ", $this->SetColor($objattr['bgcolor'], 'CodeOnly'))
+							);
+						}
+						$color = [0, 0, 0];
+						if ($objattr['color']) {
+							$color = array_map(
+								function ($col) {
+									return intval(255 * floatval($col));
+								},
+								explode(" ", $this->SetColor($objattr['color'], 'CodeOnly'))
+							);
+						}
+
+						$this->qrcode->displayFPDF(
+							$this,
+							$objattr['INNER-X'],
+							$objattr['INNER-Y'],
+							$objattr['bsize'] * 25,
+							$bgColor,
+							$color
+						);
+
+					} else {
+
+						$this->WriteBarcode2(
+							$objattr['code'],
+							$objattr['INNER-X'],
+							$objattr['INNER-Y'],
+							$objattr['bsize'],
+							$objattr['bheight'],
+							$bgcol,
+							$col,
+							$objattr['btype'],
+							$objattr['pr_ratio'],
+							$k
+						);
+
+					}
+					break;
+
+				case 'textcircle':
+					$bgcol = '';
+					if (isset($objattr['bgcolor']) && $objattr['bgcolor']) {
+						$bgcol = $objattr['bgcolor'];
+					}
+					$col = $this->colorConverter->convert(0, $this->PDFAXwarnings);
+					if (isset($objattr['color']) && $objattr['color']) {
+						$col = $objattr['color'];
+					}
+					$this->SetTColor($col);
+					$this->SetFColor($bgcol);
+					if ($bgcol) {
+						$this->Rect($objattr['BORDER-X'], $objattr['BORDER-Y'], $objattr['BORDER-WIDTH'], $objattr['BORDER-HEIGHT'], 'F');
+					}
+					$this->SetFColor($this->colorConverter->convert(255, $this->PDFAXwarnings));
+					if (isset($objattr['BORDER-WIDTH'])) {
+						$this->PaintImgBorder($objattr, $is_table);
+					}
+					if (empty($this->directWrite)) {
+						$this->directWrite = new DirectWrite($this, $this->otl, $this->sizeConverter, $this->colorConverter);
+					}
+					if (isset($objattr['top-text'])) {
+						$this->directWrite->CircularText($objattr['INNER-X'] + $objattr['INNER-WIDTH'] / 2, $objattr['INNER-Y'] + $objattr['INNER-HEIGHT'] / 2, $objattr['r'] / $k, $objattr['top-text'], 'top', $objattr['fontfamily'], $objattr['fontsize'] / $k, $objattr['fontstyle'], $objattr['space-width'], $objattr['char-width'], (isset($objattr['divider']) ? $objattr['divider'] : ''));
+					}
+					if (isset($objattr['bottom-text'])) {
+						$this->directWrite->CircularText($objattr['INNER-X'] + $objattr['INNER-WIDTH'] / 2, $objattr['INNER-Y'] + $objattr['INNER-HEIGHT'] / 2, $objattr['r'] / $k, $objattr['bottom-text'], 'bottom', $objattr['fontfamily'], $objattr['fontsize'] / $k, $objattr['fontstyle'], $objattr['space-width'], $objattr['char-width'], (isset($objattr['divider']) ? $objattr['divider'] : ''));
+					}
+					break;
 			}
 
 			$this->ResetSpacing();
 
-			// LIST MARKERS (Text or bullets)	// mPDF 6  Lists
-			if ($objattr['type'] == 'listmarker') {
-				if (isset($objattr['fontfamily'])) {
-					$this->SetFont($objattr['fontfamily'], $objattr['fontstyle'], $objattr['fontsizept']);
-				}
-				$col = $this->colorConverter->convert(0, $this->PDFAXwarnings);
-				if (isset($objattr['colorarray']) && ($objattr['colorarray'])) {
-					$col = $objattr['colorarray'];
-				}
+			switch($objattr['type']){
+				// LIST MARKERS (Text or bullets)	// mPDF 6  Lists
+				case 'listmarker':
+					if (isset($objattr['fontfamily'])) {
+						$this->SetFont($objattr['fontfamily'], $objattr['fontstyle'], $objattr['fontsizept']);
+					}
+					$col = $this->colorConverter->convert(0, $this->PDFAXwarnings);
+					if (isset($objattr['colorarray']) && ($objattr['colorarray'])) {
+						$col = $objattr['colorarray'];
+					}
 
-				if (isset($objattr['bullet']) && $objattr['bullet']) { // Used for position "outside" only
-					$type = $objattr['bullet'];
-					$size = $objattr['size'];
+					if (isset($objattr['bullet']) && $objattr['bullet']) { // Used for position "outside" only
+						$type = $objattr['bullet'];
+						$size = $objattr['size'];
 
-					if ($objattr['listmarkerposition'] == 'inside') {
-						$adjx = $size / 2;
-						if ($objattr['dir'] == 'rtl') {
-							$adjx += $objattr['offset'];
-						}
-						$this->x += $adjx;
-					} else {
-						$adjx = $objattr['offset'];
-						$adjx += $size / 2;
-						if ($objattr['dir'] == 'rtl') {
+						if ($objattr['listmarkerposition'] == 'inside') {
+							$adjx = $size / 2;
+							if ($objattr['dir'] == 'rtl') {
+								$adjx += $objattr['offset'];
+							}
 							$this->x += $adjx;
 						} else {
-							$this->x -= $adjx;
+							$adjx = $objattr['offset'];
+							$adjx += $size / 2;
+							if ($objattr['dir'] == 'rtl') {
+								$this->x += $adjx;
+							} else {
+								$this->x -= $adjx;
+							}
 						}
-					}
 
-					$yadj = $objattr['lineBox']['glyphYorigin'];
-					if (isset($this->CurrentFont['desc']['XHeight']) && $this->CurrentFont['desc']['XHeight']) {
-						$xh = $this->CurrentFont['desc']['XHeight'];
+						$yadj = $objattr['lineBox']['glyphYorigin'];
+						if (isset($this->CurrentFont['desc']['XHeight']) && $this->CurrentFont['desc']['XHeight']) {
+							$xh = $this->CurrentFont['desc']['XHeight'];
+						} else {
+							$xh = 500;
+						}
+						$yadj -= ($this->FontSize * $xh / 1000) * 0.625; // Vertical height of bullet (centre) from baseline= XHeight * 0.625
+						$this->y += $yadj;
+
+						$this->_printListBullet($this->x, $this->y, $size, $type, $col);
 					} else {
-						$xh = 500;
+						$this->SetTColor($col);
+						$w = $this->GetStringWidth($texto);
+						// NB If change marker-offset, also need to alter in function _getListMarkerWidth
+						$adjx = $this->sizeConverter->convert($this->list_marker_offset, $this->FontSize);
+						if ($objattr['dir'] == 'rtl') {
+							$align = 'L';
+							$this->x += $adjx;
+						} else {
+							// Use these lines to set as marker-offset, right-aligned - default
+							$align = 'R';
+							$this->x -= $adjx;
+							$this->x -= $w;
+						}
+						$this->Cell($w, $this->FontSize, $texto, 0, 0, $align, 0, '', 0, 0, 0, 'T', 0, false, false, 0, $objattr['lineBox']);
+						$this->SetTColor($this->colorConverter->convert(0, $this->PDFAXwarnings));
 					}
-					$yadj -= ($this->FontSize * $xh / 1000) * 0.625; // Vertical height of bullet (centre) from baseline= XHeight * 0.625
-					$this->y += $yadj;
+					break;
 
-					$this->_printListBullet($this->x, $this->y, $size, $type, $col);
-				} else {
+				case 'dottab':
+					if (isset($objattr['fontfamily'])) {
+						$this->SetFont($objattr['fontfamily'], '', $objattr['fontsize']);
+					}
+					$sp = $this->GetStringWidth(' ');
+					$nb = floor(($w - 2 * $sp) / $this->GetStringWidth('.'));
+					if ($nb > 0) {
+						$dots = ' ' . str_repeat('.', $nb) . ' ';
+					} else {
+						$dots = ' ';
+					}
+					$col = $this->colorConverter->convert(0, $this->PDFAXwarnings);
+					if (isset($objattr['colorarray']) && ($objattr['colorarray'])) {
+						$col = $objattr['colorarray'];
+					}
 					$this->SetTColor($col);
-					$w = $this->GetStringWidth($texto);
-					// NB If change marker-offset, also need to alter in function _getListMarkerWidth
-					$adjx = $this->sizeConverter->convert($this->list_marker_offset, $this->FontSize);
-					if ($objattr['dir'] == 'rtl') {
-						$align = 'L';
-						$this->x += $adjx;
-					} else {
-						// Use these lines to set as marker-offset, right-aligned - default
-						$align = 'R';
-						$this->x -= $adjx;
-						$this->x -= $w;
-					}
-					$this->Cell($w, $this->FontSize, $texto, 0, 0, $align, 0, '', 0, 0, 0, 'T', 0, false, false, 0, $objattr['lineBox']);
+					$save_dh = $this->divheight;
+					$save_sbd = $this->spanborddet;
+					$save_textvar = $this->textvar; // mPDF 5.7.1
+					$this->spanborddet = '';
+					$this->divheight = 0;
+					$this->textvar = 0x00; // mPDF 5.7.1
+
+					$this->Cell($w, $h, $dots, 0, 0, 'C', 0, '', 0, 0, 0, 'T', 0, false, false, 0, $objattr['lineBox']); // mPDF 6 DOTTAB
+					$this->spanborddet = $save_sbd;
+					$this->textvar = $save_textvar; // mPDF 5.7.1
+					$this->divheight = $save_dh;
 					$this->SetTColor($this->colorConverter->convert(0, $this->PDFAXwarnings));
-				}
-			}
 
-			// DOT-TAB
-			if ($objattr['type'] == 'dottab') {
-				if (isset($objattr['fontfamily'])) {
-					$this->SetFont($objattr['fontfamily'], '', $objattr['fontsize']);
-				}
-				$sp = $this->GetStringWidth(' ');
-				$nb = floor(($w - 2 * $sp) / $this->GetStringWidth('.'));
-				if ($nb > 0) {
-					$dots = ' ' . str_repeat('.', $nb) . ' ';
-				} else {
-					$dots = ' ';
-				}
-				$col = $this->colorConverter->convert(0, $this->PDFAXwarnings);
-				if (isset($objattr['colorarray']) && ($objattr['colorarray'])) {
-					$col = $objattr['colorarray'];
-				}
-				$this->SetTColor($col);
-				$save_dh = $this->divheight;
-				$save_sbd = $this->spanborddet;
-				$save_textvar = $this->textvar; // mPDF 5.7.1
-				$this->spanborddet = '';
-				$this->divheight = 0;
-				$this->textvar = 0x00; // mPDF 5.7.1
+					break;
 
-				$this->Cell($w, $h, $dots, 0, 0, 'C', 0, '', 0, 0, 0, 'T', 0, false, false, 0, $objattr['lineBox']); // mPDF 6 DOTTAB
-				$this->spanborddet = $save_sbd;
-				$this->textvar = $save_textvar; // mPDF 5.7.1
-				$this->divheight = $save_dh;
-				$this->SetTColor($this->colorConverter->convert(0, $this->PDFAXwarnings));
-			}
+				case 'input':
+					switch($objattr['subtype']){
+						case 'TEXT':
+						case 'PASSWORD':
+							$this->form->print_ob_text($objattr, $w, $h, $texto, $rtlalign, $k, $blockdir);
+							break;
 
-			/* -- FORMS -- */
-			// TEXT/PASSWORD INPUT
-			if ($objattr['type'] == 'input' && ($objattr['subtype'] == 'TEXT' || $objattr['subtype'] == 'PASSWORD')) {
-				$this->form->print_ob_text($objattr, $w, $h, $texto, $rtlalign, $k, $blockdir);
-			}
+						// INPUT/BUTTON as IMAGE
+						case 'IMAGE':
+							$this->form->print_ob_imageinput($objattr, $w, $h, $texto, $rtlalign, $k, $blockdir, $is_table);
+							break;
 
-			// TEXTAREA
-			if ($objattr['type'] == 'textarea') {
-				$this->form->print_ob_textarea($objattr, $w, $h, $texto, $rtlalign, $k, $blockdir);
-			}
+						case 'SUBMIT':
+						case 'RESET':
+						case 'BUTTON':
+							$this->form->print_ob_button($objattr, $w, $h, $texto, $rtlalign, $k, $blockdir);
+							break;
 
-			// SELECT
-			if ($objattr['type'] == 'select') {
-				$this->form->print_ob_select($objattr, $w, $h, $texto, $rtlalign, $k, $blockdir);
-			}
+						case 'CHECKBOX':
+							$this->form->print_ob_checkbox($objattr, $w, $h, $texto, $rtlalign, $k, $blockdir, $x, $y);
+							break;
 
+						case 'RADIO':
+							$this->form->print_ob_radio($objattr, $w, $h, $texto, $rtlalign, $k, $blockdir, $x, $y);
+							break;
+					}
+					break;
 
-			// INPUT/BUTTON as IMAGE
-			if ($objattr['type'] == 'input' && $objattr['subtype'] == 'IMAGE') {
-				$this->form->print_ob_imageinput($objattr, $w, $h, $texto, $rtlalign, $k, $blockdir, $is_table);
-			}
+				case 'textarea':
+					$this->form->print_ob_textarea($objattr, $w, $h, $texto, $rtlalign, $k, $blockdir);
+					break;
 
-			// BUTTON
-			if ($objattr['type'] == 'input' && ($objattr['subtype'] == 'SUBMIT' || $objattr['subtype'] == 'RESET' || $objattr['subtype'] == 'BUTTON')) {
-				$this->form->print_ob_button($objattr, $w, $h, $texto, $rtlalign, $k, $blockdir);
+				case 'select':
+					$this->form->print_ob_select($objattr, $w, $h, $texto, $rtlalign, $k, $blockdir);
+					break;
 			}
-
-			// CHECKBOX
-			if ($objattr['type'] == 'input' && ($objattr['subtype'] == 'CHECKBOX')) {
-				$this->form->print_ob_checkbox($objattr, $w, $h, $texto, $rtlalign, $k, $blockdir, $x, $y);
-			}
-			// RADIO
-			if ($objattr['type'] == 'input' && ($objattr['subtype'] == 'RADIO')) {
-				$this->form->print_ob_radio($objattr, $w, $h, $texto, $rtlalign, $k, $blockdir, $x, $y);
-			}
-			/* -- END FORMS -- */
 		}
 
 		$this->SetFont($save_currentfontfamily, $save_currentfontstyle, $save_currentfontsize);
@@ -10420,75 +10431,52 @@ class Mpdf extends MpdfImpl
 			}
 			// Copy over (only) the properties to set for border and background
 			$pb = [];
-			$pb['MARGIN-TOP'] = (isset($p['MARGIN-TOP']) ? $p['MARGIN-TOP'] : '');
-			$pb['MARGIN-RIGHT'] = (isset($p['MARGIN-RIGHT']) ? $p['MARGIN-RIGHT'] : '');
-			$pb['MARGIN-BOTTOM'] = (isset($p['MARGIN-BOTTOM']) ? $p['MARGIN-BOTTOM'] : '');
-			$pb['MARGIN-LEFT'] = (isset($p['MARGIN-LEFT']) ? $p['MARGIN-LEFT'] : '');
-			$pb['PADDING-TOP'] = (isset($p['PADDING-TOP']) ? $p['PADDING-TOP'] : '');
-			$pb['PADDING-RIGHT'] = (isset($p['PADDING-RIGHT']) ? $p['PADDING-RIGHT'] : '');
-			$pb['PADDING-BOTTOM'] = (isset($p['PADDING-BOTTOM']) ? $p['PADDING-BOTTOM'] : '');
-			$pb['PADDING-LEFT'] = (isset($p['PADDING-LEFT']) ? $p['PADDING-LEFT'] : '');
-			$pb['BORDER-TOP'] = (isset($p['BORDER-TOP']) ? $p['BORDER-TOP'] : '');
-			$pb['BORDER-RIGHT'] = (isset($p['BORDER-RIGHT']) ? $p['BORDER-RIGHT'] : '');
-			$pb['BORDER-BOTTOM'] = (isset($p['BORDER-BOTTOM']) ? $p['BORDER-BOTTOM'] : '');
-			$pb['BORDER-LEFT'] = (isset($p['BORDER-LEFT']) ? $p['BORDER-LEFT'] : '');
-			if (isset($p['BORDER-TOP-LEFT-RADIUS-H'])) {
-				$pb['BORDER-TOP-LEFT-RADIUS-H'] = $p['BORDER-TOP-LEFT-RADIUS-H'];
+
+			$props_to_set_or_empty = [
+            	'MARGIN-TOP',
+            	'MARGIN-RIGHT',
+            	'MARGIN-BOTTOM',
+            	'MARGIN-LEFT',
+            	'PADDING-TOP',
+            	'PADDING-RIGHT',
+            	'PADDING-BOTTOM',
+            	'PADDING-LEFT',
+            	'BORDER-TOP',
+            	'BORDER-RIGHT',
+            	'BORDER-BOTTOM',
+            	'BORDER-LEFT',
+        	];
+
+			foreach($props_to_set_or_empty as $prop){
+				$pb[$prop] = (isset($p[$prop]) ? $p[$prop] : '');
 			}
-			if (isset($p['BORDER-TOP-LEFT-RADIUS-V'])) {
-				$pb['BORDER-TOP-LEFT-RADIUS-V'] = $p['BORDER-TOP-LEFT-RADIUS-V'];
-			}
-			if (isset($p['BORDER-TOP-RIGHT-RADIUS-H'])) {
-				$pb['BORDER-TOP-RIGHT-RADIUS-H'] = $p['BORDER-TOP-RIGHT-RADIUS-H'];
-			}
-			if (isset($p['BORDER-TOP-RIGHT-RADIUS-V'])) {
-				$pb['BORDER-TOP-RIGHT-RADIUS-V'] = $p['BORDER-TOP-RIGHT-RADIUS-V'];
-			}
-			if (isset($p['BORDER-BOTTOM-LEFT-RADIUS-H'])) {
-				$pb['BORDER-BOTTOM-LEFT-RADIUS-H'] = $p['BORDER-BOTTOM-LEFT-RADIUS-H'];
-			}
-			if (isset($p['BORDER-BOTTOM-LEFT-RADIUS-V'])) {
-				$pb['BORDER-BOTTOM-LEFT-RADIUS-V'] = $p['BORDER-BOTTOM-LEFT-RADIUS-V'];
-			}
-			if (isset($p['BORDER-BOTTOM-RIGHT-RADIUS-H'])) {
-				$pb['BORDER-BOTTOM-RIGHT-RADIUS-H'] = $p['BORDER-BOTTOM-RIGHT-RADIUS-H'];
-			}
-			if (isset($p['BORDER-BOTTOM-RIGHT-RADIUS-V'])) {
-				$pb['BORDER-BOTTOM-RIGHT-RADIUS-V'] = $p['BORDER-BOTTOM-RIGHT-RADIUS-V'];
-			}
-			if (isset($p['BACKGROUND-COLOR'])) {
-				$pb['BACKGROUND-COLOR'] = $p['BACKGROUND-COLOR'];
-			}
-			if (isset($p['BOX-SHADOW'])) {
-				$pb['BOX-SHADOW'] = $p['BOX-SHADOW'];
-			}
-			/* -- BACKGROUNDS -- */
-			if (isset($p['BACKGROUND-IMAGE'])) {
-				$pb['BACKGROUND-IMAGE'] = $p['BACKGROUND-IMAGE'];
-			}
-			if (isset($p['BACKGROUND-IMAGE-RESIZE'])) {
-				$pb['BACKGROUND-IMAGE-RESIZE'] = $p['BACKGROUND-IMAGE-RESIZE'];
-			}
-			if (isset($p['BACKGROUND-IMAGE-OPACITY'])) {
-				$pb['BACKGROUND-IMAGE-OPACITY'] = $p['BACKGROUND-IMAGE-OPACITY'];
-			}
-			if (isset($p['BACKGROUND-REPEAT'])) {
-				$pb['BACKGROUND-REPEAT'] = $p['BACKGROUND-REPEAT'];
-			}
-			if (isset($p['BACKGROUND-POSITION'])) {
-				$pb['BACKGROUND-POSITION'] = $p['BACKGROUND-POSITION'];
-			}
-			if (isset($p['BACKGROUND-GRADIENT'])) {
-				$pb['BACKGROUND-GRADIENT'] = $p['BACKGROUND-GRADIENT'];
-			}
-			if (isset($p['BACKGROUND-SIZE'])) {
-				$pb['BACKGROUND-SIZE'] = $p['BACKGROUND-SIZE'];
-			}
-			if (isset($p['BACKGROUND-ORIGIN'])) {
-				$pb['BACKGROUND-ORIGIN'] = $p['BACKGROUND-ORIGIN'];
-			}
-			if (isset($p['BACKGROUND-CLIP'])) {
-				$pb['BACKGROUND-CLIP'] = $p['BACKGROUND-CLIP'];
+
+			$only_if_set_props = [
+				'BORDER-TOP-LEFT-RADIUS-H',
+				'BORDER-TOP-LEFT-RADIUS-V',
+				'BORDER-TOP-RIGHT-RADIUS-H',
+				'BORDER-TOP-RIGHT-RADIUS-V',
+				'BORDER-BOTTOM-LEFT-RADIUS-H',
+				'BORDER-BOTTOM-LEFT-RADIUS-V',
+				'BORDER-BOTTOM-RIGHT-RADIUS-H',
+				'BORDER-BOTTOM-RIGHT-RADIUS-V',
+				'BACKGROUND-COLOR',
+				'BOX-SHADOW',
+				'BACKGROUND-IMAGE',
+				'BACKGROUND-IMAGE-RESIZE',
+				'BACKGROUND-IMAGE-OPACITY',
+				'BACKGROUND-REPEAT',
+				'BACKGROUND-POSITION',
+				'BACKGROUND-GRADIENT',
+				'BACKGROUND-SIZE',
+				'BACKGROUND-ORIGIN',
+				'BACKGROUND-CLIP',
+			];
+
+			foreach($only_if_set_props as $prop){
+				if (isset($p[$prop])) {
+					$pb[$prop] = $p[$prop];
+				}
 			}
 
 			/* -- END BACKGROUNDS -- */
